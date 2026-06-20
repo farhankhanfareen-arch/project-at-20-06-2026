@@ -1,0 +1,2030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NexaHR — Employee Shift & Salary Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root {
+  --bg-primary: #0B1120;
+  --bg-secondary: #111B2E;
+  --bg-card: #162032;
+  --bg-card-hover: #1C2A42;
+  --border: #1E3048;
+  --border-light: #2A3F5F;
+  --text-primary: #E8ECF4;
+  --text-secondary: #8899B4;
+  --text-muted: #5A6F8E;
+  --accent: #00D68F;
+  --accent-hover: #00F5A0;
+  --accent-dim: rgba(0,214,143,0.12);
+  --accent-glow: rgba(0,214,143,0.25);
+  --warning: #FFB547;
+  --warning-dim: rgba(255,181,71,0.12);
+  --danger: #FF6B6B;
+  --danger-dim: rgba(255,107,107,0.12);
+  --info: #4ECDC4;
+  --info-dim: rgba(78,205,196,0.12);
+  --purple: #A78BFA;
+  --purple-dim: rgba(167,139,250,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  overflow-x:hidden;
+  min-height:100vh;
+}
+h1,h2,h3,h4,h5 { font-family:'Space Grotesk',sans-serif; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background:var(--bg-secondary); }
+::-webkit-scrollbar-thumb { background:var(--border-light); border-radius:3px; }
+::-webkit-scrollbar-thumb:hover { background:var(--text-muted); }
+
+/* Login Background */
+.login-bg {
+  background:var(--bg-primary);
+  position:relative;
+  overflow:hidden;
+}
+.login-bg::before {
+  content:'';
+  position:absolute;
+  top:-40%; left:-20%;
+  width:80vw; height:80vw;
+  background:radial-gradient(circle, rgba(0,214,143,0.06) 0%, transparent 70%);
+  animation:floatOrb 20s ease-in-out infinite;
+}
+.login-bg::after {
+  content:'';
+  position:absolute;
+  bottom:-30%; right:-15%;
+  width:60vw; height:60vw;
+  background:radial-gradient(circle, rgba(78,205,196,0.04) 0%, transparent 70%);
+  animation:floatOrb 25s ease-in-out infinite reverse;
+}
+@keyframes floatOrb {
+  0%,100% { transform:translate(0,0) scale(1); }
+  33% { transform:translate(5%,8%) scale(1.05); }
+  66% { transform:translate(-3%,-5%) scale(0.95); }
+}
+
+/* Grid pattern overlay */
+.grid-pattern {
+  position:absolute;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(0,214,143,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,214,143,0.03) 1px, transparent 1px);
+  background-size:60px 60px;
+  animation:gridShift 40s linear infinite;
+}
+@keyframes gridShift {
+  0% { transform:translate(0,0); }
+  100% { transform:translate(60px,60px); }
+}
+
+/* Sidebar */
+.sidebar {
+  width:260px;
+  background:var(--bg-secondary);
+  border-right:1px solid var(--border);
+  height:100vh;
+  position:fixed;
+  left:0; top:0;
+  z-index:40;
+  transition:transform 0.3s ease;
+  display:flex;
+  flex-direction:column;
+}
+.sidebar.collapsed { transform:translateX(-260px); }
+.sidebar-link {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 20px;
+  color:var(--text-secondary);
+  font-size:14px;
+  border-radius:8px;
+  margin:2px 12px;
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+}
+.sidebar-link:hover { background:var(--accent-dim); color:var(--text-primary); }
+.sidebar-link.active {
+  background:var(--accent-dim);
+  color:var(--accent);
+  font-weight:600;
+}
+.sidebar-link.active::before {
+  content:'';
+  position:absolute;
+  left:0; top:50%;
+  transform:translateY(-50%);
+  width:3px; height:20px;
+  background:var(--accent);
+  border-radius:0 3px 3px 0;
+}
+.sidebar-link i { width:20px; text-align:center; font-size:15px; }
+
+/* Main */
+.main-content {
+  margin-left:260px;
+  min-height:100vh;
+  transition:margin-left 0.3s ease;
+}
+.main-content.expanded { margin-left:0; }
+
+/* Cards */
+.card {
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:20px;
+  transition:all 0.25s;
+}
+.card:hover { border-color:var(--border-light); }
+
+/* Stat cards */
+.stat-card {
+  position:relative;
+  overflow:hidden;
+}
+.stat-card::after {
+  content:'';
+  position:absolute;
+  top:-30px; right:-30px;
+  width:100px; height:100px;
+  border-radius:50%;
+  opacity:0.08;
+  transition:opacity 0.3s;
+}
+.stat-card:hover::after { opacity:0.15; }
+.stat-card.green::after { background:var(--accent); }
+.stat-card.amber::after { background:var(--warning); }
+.stat-card.red::after { background:var(--danger); }
+.stat-card.blue::after { background:var(--info); }
+.stat-card.purple::after { background:var(--purple); }
+
+/* Inputs */
+.input-field {
+  background:var(--bg-primary);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:10px 14px;
+  color:var(--text-primary);
+  font-size:14px;
+  width:100%;
+  transition:border-color 0.2s;
+  font-family:'DM Sans',sans-serif;
+}
+.input-field:focus {
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-dim);
+}
+.input-field::placeholder { color:var(--text-muted); }
+
+select.input-field { cursor:pointer; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%235A6F8E' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:36px;
+}
+
+/* Buttons */
+.btn {
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 20px;
+  border-radius:8px;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  border:none;
+  transition:all 0.2s;
+  font-family:'DM Sans',sans-serif;
+}
+.btn-primary {
+  background:var(--accent);
+  color:#0B1120;
+}
+.btn-primary:hover { background:var(--accent-hover); transform:translateY(-1px); box-shadow:0 4px 20px var(--accent-glow); }
+.btn-secondary {
+  background:transparent;
+  border:1px solid var(--border-light);
+  color:var(--text-primary);
+}
+.btn-secondary:hover { border-color:var(--accent); color:var(--accent); }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-danger:hover { opacity:0.9; }
+.btn-sm { padding:6px 14px; font-size:13px; }
+.btn-icon { padding:8px 10px; }
+
+/* Table */
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th {
+  text-align:left;
+  padding:12px 16px;
+  font-size:12px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  color:var(--text-muted);
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.data-table td {
+  padding:12px 16px;
+  font-size:14px;
+  border-bottom:1px solid var(--border);
+  color:var(--text-secondary);
+  white-space:nowrap;
+}
+.data-table tr:hover td { background:var(--bg-card-hover); }
+
+/* Badges */
+.badge {
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 10px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:600;
+}
+.badge-green { background:var(--accent-dim); color:var(--accent); }
+.badge-amber { background:var(--warning-dim); color:var(--warning); }
+.badge-red { background:var(--danger-dim); color:var(--danger); }
+.badge-blue { background:var(--info-dim); color:var(--info); }
+.badge-purple { background:var(--purple-dim); color:var(--purple); }
+
+/* Toast */
+.toast-container {
+  position:fixed;
+  top:20px; right:20px;
+  z-index:9999;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+.toast {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 20px;
+  border-radius:10px;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+  min-width:320px;
+  animation:toastIn 0.3s ease;
+  font-size:14px;
+}
+.toast.success { border-left:3px solid var(--accent); }
+.toast.error { border-left:3px solid var(--danger); }
+.toast.warning { border-left:3px solid var(--warning); }
+.toast.info { border-left:3px solid var(--info); }
+.toast-exit { animation:toastOut 0.3s ease forwards; }
+@keyframes toastIn { from { opacity:0; transform:translateX(100px); } to { opacity:1; transform:translateX(0); } }
+@keyframes toastOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(100px); } }
+
+/* Modal */
+.modal-overlay {
+  position:fixed; inset:0;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter:blur(4px);
+  z-index:100;
+  display:flex; align-items:center; justify-content:center;
+  animation:fadeIn 0.2s ease;
+}
+.modal-box {
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:28px;
+  width:90%; max-width:560px;
+  max-height:85vh;
+  overflow-y:auto;
+  animation:modalIn 0.3s ease;
+}
+@keyframes fadeIn { from{opacity:0}to{opacity:1} }
+@keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)} }
+
+/* Page transitions */
+.page-section { display:none; animation:pageIn 0.3s ease; }
+.page-section.active { display:block; }
+@keyframes pageIn { from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)} }
+
+/* Pulse dot */
+.pulse-dot {
+  width:8px; height:8px;
+  border-radius:50%;
+  background:var(--accent);
+  position:relative;
+}
+.pulse-dot::after {
+  content:'';
+  position:absolute; inset:-4px;
+  border-radius:50%;
+  border:2px solid var(--accent);
+  animation:pulse 2s ease infinite;
+}
+@keyframes pulse {
+  0%{transform:scale(1);opacity:0.6}
+  100%{transform:scale(2);opacity:0}
+}
+
+/* Drive folder */
+.drive-folder {
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:20px;
+  border-radius:12px;
+  background:var(--bg-primary);
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:all 0.2s;
+}
+.drive-folder:hover {
+  border-color:var(--accent);
+  background:var(--accent-dim);
+  transform:translateY(-2px);
+}
+.drive-file {
+  display:flex; align-items:center; gap:12px;
+  padding:12px 16px;
+  border-radius:8px;
+  background:var(--bg-primary);
+  border:1px solid var(--border);
+  transition:all 0.2s;
+}
+.drive-file:hover { border-color:var(--border-light); background:var(--bg-card-hover); }
+
+/* Tab */
+.tab-btn {
+  padding:8px 18px;
+  font-size:13px;
+  font-weight:600;
+  border-radius:6px;
+  cursor:pointer;
+  color:var(--text-muted);
+  background:transparent;
+  border:none;
+  transition:all 0.2s;
+  font-family:'DM Sans',sans-serif;
+}
+.tab-btn.active { background:var(--accent-dim); color:var(--accent); }
+.tab-btn:hover:not(.active) { color:var(--text-primary); }
+
+/* Email log row animation */
+.log-row { animation:logSlide 0.3s ease; }
+@keyframes logSlide { from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)} }
+
+/* OTP input */
+.otp-input {
+  width:48px; height:56px;
+  text-align:center;
+  font-size:22px;
+  font-weight:700;
+  background:var(--bg-primary);
+  border:2px solid var(--border);
+  border-radius:10px;
+  color:var(--text-primary);
+  font-family:'Space Grotesk',sans-serif;
+  transition:border-color 0.2s;
+}
+.otp-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-dim); }
+
+/* Responsive */
+@media(max-width:768px) {
+  .sidebar { transform:translateX(-260px); }
+  .sidebar.mobile-open { transform:translateX(0); }
+  .main-content { margin-left:0 !important; }
+}
+
+/* Reduced motion */
+@media(prefers-reduced-motion:reduce) {
+  *, *::before, *::after { animation-duration:0.01ms !important; transition-duration:0.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Modal Container -->
+<div id="modalContainer"></div>
+
+<!-- ==================== LOGIN SCREEN ==================== -->
+<div id="loginScreen" class="login-bg min-h-screen flex items-center justify-center p-4">
+  <div class="grid-pattern"></div>
+  <div class="relative z-10 w-full max-w-md">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center gap-3 mb-3">
+        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+          <i class="fas fa-cubes text-white text-lg"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight" style="font-family:'Space Grotesk'">NexaHR</h1>
+      </div>
+      <p class="text-sm" style="color:var(--text-muted)">Employee Shift & Salary Management Platform</p>
+    </div>
+
+    <!-- Login Form -->
+    <div id="loginForm" class="card" style="border-color:var(--border-light)">
+      <h2 class="text-lg font-bold mb-1">Welcome back</h2>
+      <p class="text-sm mb-6" style="color:var(--text-muted)">Sign in with your email to continue</p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">EMAIL ADDRESS</label>
+          <div class="relative">
+            <i class="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--text-muted)"></i>
+            <input type="email" id="loginEmail" class="input-field pl-10" placeholder="you@company.com" value="admin@nexahr.com">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">PASSWORD</label>
+          <div class="relative">
+            <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--text-muted)"></i>
+            <input type="password" id="loginPassword" class="input-field pl-10" placeholder="Enter your password" value="admin123">
+            <button onclick="togglePasswordVisibility('loginPassword',this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-sm" style="color:var(--text-muted);background:none;border:none;cursor:pointer">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="flex items-center justify-between">
+          <label class="flex items-center gap-2 cursor-pointer text-sm" style="color:var(--text-secondary)">
+            <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded" style="accent-color:var(--accent)">
+            Remember me
+          </label>
+          <button onclick="showForgotPassword()" class="text-sm font-semibold" style="color:var(--accent);background:none;border:none;cursor:pointer">Forgot password?</button>
+        </div>
+        <button onclick="handleLogin()" class="btn btn-primary w-full justify-center text-sm" style="padding:12px">
+          <i class="fas fa-arrow-right-to-bracket"></i> Sign In
+        </button>
+      </div>
+
+      <div class="mt-4 pt-4" style="border-top:1px solid var(--border)">
+        <p class="text-xs text-center" style="color:var(--text-muted)">
+          Demo accounts: <span style="color:var(--text-secondary)">admin@nexahr.com</span> / <span style="color:var(--text-secondary)">manager@nexahr.com</span> / <span style="color:var(--text-secondary)">emp@nexahr.com</span> &mdash; Password: <span style="color:var(--text-secondary)">admin123</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Forgot Password Form (hidden) -->
+    <div id="forgotForm" class="card" style="border-color:var(--border-light);display:none">
+      <h2 class="text-lg font-bold mb-1">Reset Password</h2>
+      <p class="text-sm mb-6" style="color:var(--text-muted)">We'll send a 6-digit OTP to your email</p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">EMAIL ADDRESS</label>
+          <input type="email" id="forgotEmail" class="input-field" placeholder="you@company.com">
+        </div>
+        <button onclick="sendOTP()" class="btn btn-primary w-full justify-center text-sm" style="padding:12px">
+          <i class="fas fa-paper-plane"></i> Send OTP
+        </button>
+        <button onclick="backToLogin()" class="btn btn-secondary w-full justify-center text-sm">
+          <i class="fas fa-arrow-left"></i> Back to Login
+        </button>
+      </div>
+    </div>
+
+    <!-- OTP Verification Form (hidden) -->
+    <div id="otpForm" class="card" style="border-color:var(--border-light);display:none">
+      <h2 class="text-lg font-bold mb-1">Verify OTP</h2>
+      <p class="text-sm mb-6" style="color:var(--text-muted)">Enter the 6-digit code sent to <span id="otpEmailDisplay" style="color:var(--accent)"></span></p>
+      <div class="flex justify-center gap-2 mb-6" id="otpInputs">
+        <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,0)" onkeydown="otpBack(event,this,0)">
+        <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,1)" onkeydown="otpBack(event,this,1)">
+        <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,2)" onkeydown="otpBack(event,this,2)">
+        <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,3)" onkeydown="otpBack(event,this,3)">
+        <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,4)" onkeydown="otpBack(event,this,4)">
+        <input type="text" maxlength="1" class="otp-input" oninput="otpNext(this,5)" onkeydown="otpBack(event,this,5)">
+      </div>
+      <div class="space-y-3">
+        <button onclick="verifyOTP()" class="btn btn-primary w-full justify-center text-sm" style="padding:12px">
+          <i class="fas fa-check-circle"></i> Verify & Reset
+        </button>
+        <button onclick="sendOTP()" class="btn btn-secondary w-full justify-center text-sm">
+          <i class="fas fa-redo"></i> Resend OTP
+        </button>
+        <button onclick="backToLogin()" class="btn btn-secondary w-full justify-center text-sm">
+          <i class="fas fa-arrow-left"></i> Back to Login
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP ==================== -->
+<div id="appScreen" style="display:none">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="p-5 pb-3 flex items-center gap-3" style="border-bottom:1px solid var(--border)">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center flex-shrink-0">
+        <i class="fas fa-cubes text-white text-sm"></i>
+      </div>
+      <div>
+        <h3 class="text-sm font-bold" style="font-family:'Space Grotesk'">NexaHR</h3>
+        <p class="text-xs" style="color:var(--text-muted)">Management Suite</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 py-3 overflow-y-auto">
+      <p class="px-5 py-2 text-xs font-semibold" style="color:var(--text-muted)">MAIN</p>
+      <div class="sidebar-link active" data-page="dashboard" onclick="navigateTo('dashboard')">
+        <i class="fas fa-chart-line"></i> Dashboard
+      </div>
+      <div class="sidebar-link" data-page="employees" onclick="navigateTo('employees')">
+        <i class="fas fa-users"></i> Employees
+      </div>
+      <div class="sidebar-link" data-page="shifts" onclick="navigateTo('shifts')">
+        <i class="fas fa-clock"></i> Shift Management
+      </div>
+      <div class="sidebar-link" data-page="advance" onclick="navigateTo('advance')">
+        <i class="fas fa-hand-holding-dollar"></i> Advance Salary
+      </div>
+
+      <p class="px-5 py-2 mt-3 text-xs font-semibold" style="color:var(--text-muted)">COMMUNICATION</p>
+      <div class="sidebar-link" data-page="emailLogs" onclick="navigateTo('emailLogs')">
+        <i class="fas fa-envelope-open-text"></i> Email Logs
+        <span class="ml-auto badge badge-green" id="emailCountBadge">0</span>
+      </div>
+      <div class="sidebar-link" data-page="drive" onclick="navigateTo('drive')">
+        <i class="fas fa-hard-drive"></i> Google Drive
+      </div>
+
+      <p class="px-5 py-2 mt-3 text-xs font-semibold" style="color:var(--text-muted)">SETTINGS</p>
+      <div class="sidebar-link" data-page="templates" onclick="navigateTo('templates')">
+        <i class="fas fa-palette"></i> Email Templates
+      </div>
+      <div class="sidebar-link" data-page="smtp" onclick="navigateTo('smtp')">
+        <i class="fas fa-server"></i> SMTP Settings
+      </div>
+    </nav>
+
+    <!-- User info at bottom -->
+    <div class="p-4" style="border-top:1px solid var(--border)">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style="background:var(--accent-dim);color:var(--accent)" id="userAvatar">A</div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold truncate" id="userName">Admin User</p>
+          <p class="text-xs truncate" style="color:var(--text-muted)" id="userRole">Administrator</p>
+        </div>
+        <button onclick="handleLogout()" class="text-sm" style="color:var(--text-muted);background:none;border:none;cursor:pointer" title="Logout">
+          <i class="fas fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content" id="mainContent">
+    <!-- Top Bar -->
+    <header class="sticky top-0 z-30 px-6 py-3 flex items-center justify-between" style="background:rgba(11,17,32,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)">
+      <div class="flex items-center gap-4">
+        <button onclick="toggleSidebar()" class="btn-icon btn-secondary" style="padding:8px 10px;border-radius:8px;cursor:pointer;background:transparent;border:1px solid var(--border);color:var(--text-secondary)">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h2 class="text-base font-bold" id="pageTitle">Dashboard</h2>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <input type="text" class="input-field text-sm" placeholder="Search..." style="width:220px;padding-left:36px">
+          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-muted)"></i>
+        </div>
+        <button class="relative" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:8px" onclick="showNotifications()">
+          <i class="fas fa-bell text-lg"></i>
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full" style="background:var(--danger)" id="notifDot"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Page Content Container -->
+    <div class="p-6">
+
+      <!-- ========== DASHBOARD ========== -->
+      <section id="page-dashboard" class="page-section active">
+        <!-- Stats Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div class="card stat-card green">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold" style="color:var(--text-muted)">TOTAL EMPLOYEES</span>
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--accent-dim)"><i class="fas fa-users text-sm" style="color:var(--accent)"></i></div>
+            </div>
+            <p class="text-2xl font-bold" id="statEmployees">0</p>
+            <p class="text-xs mt-1" style="color:var(--accent)"><i class="fas fa-arrow-up mr-1"></i>12% from last month</p>
+          </div>
+          <div class="card stat-card blue">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold" style="color:var(--text-muted)">ON SHIFT NOW</span>
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--info-dim)"><i class="fas fa-clock text-sm" style="color:var(--info)"></i></div>
+            </div>
+            <p class="text-2xl font-bold" id="statOnShift">0</p>
+            <p class="text-xs mt-1" style="color:var(--info)"><i class="fas fa-circle text-xs mr-1" style="font-size:6px"></i>Live tracking</p>
+          </div>
+          <div class="card stat-card amber">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold" style="color:var(--text-muted)">PENDING ADVANCES</span>
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--warning-dim)"><i class="fas fa-hourglass-half text-sm" style="color:var(--warning)"></i></div>
+            </div>
+            <p class="text-2xl font-bold" id="statPending">0</p>
+            <p class="text-xs mt-1" style="color:var(--warning)"><i class="fas fa-exclamation-circle mr-1"></i>Needs review</p>
+          </div>
+          <div class="card stat-card purple">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold" style="color:var(--text-muted)">EMAILS SENT</span>
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--purple-dim)"><i class="fas fa-envelope text-sm" style="color:var(--purple)"></i></div>
+            </div>
+            <p class="text-2xl font-bold" id="statEmails">0</p>
+            <p class="text-xs mt-1" style="color:var(--purple)"><i class="fas fa-chart-line mr-1"></i>This month</p>
+          </div>
+          <div class="card stat-card red">
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold" style="color:var(--text-muted)">DRIVE FILES</span>
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--danger-dim)"><i class="fas fa-folder text-sm" style="color:var(--danger)"></i></div>
+            </div>
+            <p class="text-2xl font-bold" id="statDrive">0</p>
+            <p class="text-xs mt-1" style="color:var(--danger)"><i class="fas fa-cloud-arrow-up mr-1"></i>Stored securely</p>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div class="card lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-bold">Attendance Overview</h3>
+              <div class="flex gap-1">
+                <button class="tab-btn active" onclick="switchChartPeriod(this,'week')">Week</button>
+                <button class="tab-btn" onclick="switchChartPeriod(this,'month')">Month</button>
+              </div>
+            </div>
+            <canvas id="attendanceChart" height="200"></canvas>
+          </div>
+          <div class="card">
+            <h3 class="text-sm font-bold mb-4">Email Activity</h3>
+            <canvas id="emailChart" height="200"></canvas>
+          </div>
+        </div>
+
+        <!-- Recent Activity + Quick Actions -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="card lg:col-span-2">
+            <h3 class="text-sm font-bold mb-4">Recent Activity</h3>
+            <div class="space-y-3" id="recentActivity"></div>
+          </div>
+          <div class="card">
+            <h3 class="text-sm font-bold mb-4">Quick Actions</h3>
+            <div class="space-y-2">
+              <button onclick="navigateTo('employees');setTimeout(()=>showAddEmployeeModal(),100)" class="btn btn-secondary w-full justify-start text-sm">
+                <i class="fas fa-user-plus"></i> Add Employee
+              </button>
+              <button onclick="navigateTo('shifts');setTimeout(()=>showAssignShiftModal(),100)" class="btn btn-secondary w-full justify-start text-sm">
+                <i class="fas fa-calendar-plus"></i> Assign Shift
+              </button>
+              <button onclick="navigateTo('advance')" class="btn btn-secondary w-full justify-start text-sm">
+                <i class="fas fa-money-bill-wave"></i> Review Advances
+              </button>
+              <button onclick="navigateTo('emailLogs')" class="btn btn-secondary w-full justify-start text-sm">
+                <i class="fas fa-paper-plane"></i> View Email Log
+              </button>
+              <button onclick="navigateTo('drive')" class="btn btn-secondary w-full justify-start text-sm">
+                <i class="fas fa-cloud-arrow-up"></i> Open Drive
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== EMPLOYEES ========== -->
+      <section id="page-employees" class="page-section">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div class="flex items-center gap-3">
+            <input type="text" class="input-field text-sm" placeholder="Search employees..." style="width:260px" oninput="filterEmployees(this.value)">
+            <select class="input-field text-sm" style="width:160px" onchange="filterByDept(this.value)">
+              <option value="">All Departments</option>
+              <option>Engineering</option>
+              <option>Design</option>
+              <option>Marketing</option>
+              <option>Sales</option>
+              <option>HR</option>
+              <option>Finance</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="showImportModal()" class="btn btn-secondary btn-sm"><i class="fas fa-file-excel"></i> Import Excel</button>
+            <button onclick="showAddEmployeeModal()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add Employee</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto">
+          <table class="data-table" id="employeeTable">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>ID</th>
+                <th>Department</th>
+                <th>Position</th>
+                <th>Shift</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========== SHIFT MANAGEMENT ========== -->
+      <section id="page-shifts" class="page-section">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div class="flex gap-2">
+            <button class="tab-btn active" onclick="switchShiftTab(this,'schedule')">Schedule</button>
+            <button class="tab-btn" onclick="switchShiftTab(this,'history')">History</button>
+          </div>
+          <button onclick="showAssignShiftModal()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Assign Shift</button>
+        </div>
+        <div id="shiftScheduleView">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="shiftCards"></div>
+        </div>
+        <div id="shiftHistoryView" style="display:none">
+          <div class="card" style="padding:0;overflow-x:auto">
+            <table class="data-table">
+              <thead><tr><th>Employee</th><th>Shift</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+              <tbody id="shiftHistoryBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== ADVANCE SALARY ========== -->
+      <section id="page-advance" class="page-section">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div class="flex gap-2">
+            <button class="tab-btn active" onclick="switchAdvanceTab(this,'pending')">Pending</button>
+            <button class="tab-btn" onclick="switchAdvanceTab(this,'approved')">Approved</button>
+            <button class="tab-btn" onclick="switchAdvanceTab(this,'rejected')">Rejected</button>
+            <button class="tab-btn" onclick="switchAdvanceTab(this,'all')">All</button>
+          </div>
+          <button onclick="showNewAdvanceModal()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> New Request</button>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Employee</th><th>Amount</th><th>Reason</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="advanceTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ========== EMAIL LOGS ========== -->
+      <section id="page-emailLogs" class="page-section">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div class="flex items-center gap-3">
+            <input type="text" class="input-field text-sm" placeholder="Search emails..." style="width:240px" oninput="filterEmailLogs(this.value)">
+            <select class="input-field text-sm" style="width:150px" onchange="filterEmailType(this.value)">
+              <option value="">All Types</option>
+              <option>shift_assigned</option>
+              <option>advance_approved</option>
+              <option>advance_rejected</option>
+              <option>payroll</option>
+              <option>welcome</option>
+              <option>attendance</option>
+            </select>
+            <select class="input-field text-sm" style="width:130px" onchange="filterEmailStatus(this.value)">
+              <option value="">All Status</option>
+              <option>sent</option>
+              <option>failed</option>
+              <option>pending</option>
+            </select>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="retryFailedEmails()" class="btn btn-secondary btn-sm"><i class="fas fa-redo"></i> Retry Failed</button>
+            <button onclick="exportEmailLogs()" class="btn btn-secondary btn-sm"><i class="fas fa-download"></i> Export</button>
+          </div>
+        </div>
+        <div class="card" style="padding:0;overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Recipient</th><th>Subject</th><th>Type</th><th>Status</th><th>Time</th><th>Attachment</th><th>Actions</th></tr></thead>
+            <tbody id="emailLogBody"></tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between mt-4">
+          <p class="text-sm" style="color:var(--text-muted)" id="emailLogSummary">Showing 0 emails</p>
+        </div>
+      </section>
+
+      <!-- ========== GOOGLE DRIVE ========== -->
+      <section id="page-drive" class="page-section">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(66,133,244,0.15)">
+                <i class="fab fa-google-drive" style="color:#4285F4"></i>
+              </div>
+              <span class="text-sm font-semibold">Google Drive Connected</span>
+              <div class="pulse-dot"></div>
+            </div>
+          </div>
+          <button onclick="showUploadModal()" class="btn btn-primary btn-sm"><i class="fas fa-cloud-arrow-up"></i> Upload File</button>
+        </div>
+        <!-- Folders -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-6" id="driveFolders"></div>
+        <!-- Files -->
+        <div class="card">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold" id="driveCurrentFolder">All Files</h3>
+            <div class="flex gap-2">
+              <input type="text" class="input-field text-sm" placeholder="Search files..." style="width:200px" oninput="filterDriveFiles(this.value)">
+            </div>
+          </div>
+          <div class="space-y-2" id="driveFilesList"></div>
+          <div id="driveEmpty" class="text-center py-10" style="display:none">
+            <i class="fas fa-folder-open text-4xl mb-3" style="color:var(--text-muted)"></i>
+            <p class="text-sm" style="color:var(--text-muted)">No files in this folder</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== EMAIL TEMPLATES ========== -->
+      <section id="page-templates" class="page-section">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <h3 class="text-sm font-bold mb-3">Template List</h3>
+            <div class="space-y-2" id="templateList"></div>
+          </div>
+          <div class="card" id="templateEditor">
+            <h3 class="text-sm font-bold mb-3">Template Editor</h3>
+            <p class="text-sm" style="color:var(--text-muted)">Select a template to edit</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== SMTP SETTINGS ========== -->
+      <section id="page-smtp" class="page-section">
+        <div class="max-w-2xl">
+          <div class="card mb-4">
+            <h3 class="text-sm font-bold mb-4">SMTP Configuration</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">SMTP HOST</label>
+                <input type="text" class="input-field" id="smtpHost" value="smtp.gmail.com">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">SMTP PORT</label>
+                <input type="number" class="input-field" id="smtpPort" value="587">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">USERNAME</label>
+                <input type="email" class="input-field" id="smtpUser" value="hr@nexahr.com">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">PASSWORD</label>
+                <input type="password" class="input-field" id="smtpPass" value="app-password-xxx">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">FROM NAME</label>
+                <input type="text" class="input-field" id="smtpFrom" value="NexaHR System">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">ENCRYPTION</label>
+                <select class="input-field" id="smtpEncryption">
+                  <option>TLS</option>
+                  <option>SSL</option>
+                  <option>None</option>
+                </select>
+              </div>
+            </div>
+            <div class="flex gap-3 mt-5">
+              <button onclick="saveSMTP()" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save Settings</button>
+              <button onclick="testSMTP()" class="btn btn-secondary btn-sm"><i class="fas fa-paper-plane"></i> Send Test Email</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3 class="text-sm font-bold mb-4">Google Drive OAuth</h3>
+            <div class="flex items-center gap-4 mb-4">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background:rgba(66,133,244,0.12)">
+                <i class="fab fa-google text-xl" style="color:#4285F4"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold">Google API Connection</p>
+                <p class="text-xs" style="color:var(--accent)"><i class="fas fa-circle-check mr-1"></i>Authenticated</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">CLIENT ID</label>
+                <input type="text" class="input-field" value="xxxx.apps.googleusercontent.com" readonly style="color:var(--text-muted)">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-2" style="color:var(--text-secondary)">ROOT FOLDER ID</label>
+                <input type="text" class="input-field" value="1aBcD...xYz" readonly style="color:var(--text-muted)">
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+/* ========================================================================
+   NexaHR — Complete Frontend Simulation
+   All data stored in-memory. Email/Drive operations are simulated with
+   realistic delays, status tracking, and log entries.
+   ======================================================================== */
+
+// ==================== DATA STORE ====================
+const DB = {
+  currentUser: null,
+  users: [
+    { id:'U001', name:'Rajesh Kumar', email:'admin@nexahr.com', password:'admin123', role:'admin', avatar:'RK', verified:true },
+    { id:'U002', name:'Priya Sharma', email:'manager@nexahr.com', password:'admin123', role:'manager', avatar:'PS', verified:true },
+    { id:'U003', name:'Amit Patel', email:'emp@nexahr.com', password:'admin123', role:'employee', avatar:'AP', verified:true },
+  ],
+  employees: [
+    { id:'EMP001', name:'Amit Patel', email:'emp@nexahr.com', dept:'Engineering', position:'Senior Developer', shift:'Morning', status:'active', avatar:'AP', phone:'+91-9876543210', joined:'2023-03-15', salary:85000 },
+    { id:'EMP002', name:'Sneha Reddy', email:'sneha@nexahr.com', dept:'Design', position:'UI/UX Lead', shift:'Morning', status:'active', avatar:'SR', phone:'+91-9876543211', joined:'2023-06-20', salary:78000 },
+    { id:'EMP003', name:'Vikram Singh', email:'vikram@nexahr.com', dept:'Marketing', position:'Marketing Manager', shift:'Evening', status:'active', avatar:'VS', phone:'+91-9876543212', joined:'2022-11-10', salary:72000 },
+    { id:'EMP004', name:'Neha Gupta', email:'neha@nexahr.com', dept:'Sales', position:'Sales Executive', shift:'Night', status:'active', avatar:'NG', phone:'+91-9876543213', joined:'2024-01-05', salary:55000 },
+    { id:'EMP005', name:'Arjun Mehta', email:'arjun@nexahr.com', dept:'Engineering', position:'Backend Developer', shift:'Morning', status:'active', avatar:'AM', phone:'+91-9876543214', joined:'2023-09-12', salary:80000 },
+    { id:'EMP006', name:'Kavita Joshi', email:'kavita@nexahr.com', dept:'HR', position:'HR Specialist', shift:'Morning', status:'on_leave', avatar:'KJ', phone:'+91-9876543215', joined:'2022-07-18', salary:65000 },
+    { id:'EMP007', name:'Rohan Das', email:'rohan@nexahr.com', dept:'Finance', position:'Accountant', shift:'Evening', status:'active', avatar:'RD', phone:'+91-9876543216', joined:'2023-04-22', salary:60000 },
+    { id:'EMP008', name:'Divya Nair', email:'divya@nexahr.com', dept:'Engineering', position:'QA Engineer', shift:'Morning', status:'active', avatar:'DN', phone:'+91-9876543217', joined:'2024-02-14', salary:70000 },
+  ],
+  shifts: [
+    { id:'SH001', empId:'EMP001', type:'Morning', date:'2025-01-20', start:'06:00', end:'14:00', status:'completed' },
+    { id:'SH002', empId:'EMP002', type:'Morning', date:'2025-01-20', start:'06:00', end:'14:00', status:'completed' },
+    { id:'SH003', empId:'EMP003', type:'Evening', date:'2025-01-20', start:'14:00', end:'22:00', status:'active' },
+    { id:'SH004', empId:'EMP004', type:'Night', date:'2025-01-20', start:'22:00', end:'06:00', status:'active' },
+    { id:'SH005', empId:'EMP005', type:'Morning', date:'2025-01-21', start:'06:00', end:'14:00', status:'scheduled' },
+    { id:'SH006', empId:'EMP008', type:'Morning', date:'2025-01-21', start:'06:00', end:'14:00', status:'scheduled' },
+    { id:'SH007', empId:'EMP001', type:'Morning', date:'2025-01-18', start:'06:00', end:'14:00', status:'completed' },
+    { id:'SH008', empId:'EMP003', type:'Evening', date:'2025-01-18', start:'14:00', end:'22:00', status:'completed' },
+  ],
+  advances: [
+    { id:'ADV001', empId:'EMP001', amount:15000, reason:'Medical emergency', date:'2025-01-15', status:'pending', repaymentMonths:3 },
+    { id:'ADV002', empId:'EMP004', amount:8000, reason:'House rent deposit', date:'2025-01-14', status:'pending', repaymentMonths:2 },
+    { id:'ADV003', empId:'EMP003', amount:20000, reason:'Family function', date:'2025-01-10', status:'approved', repaymentMonths:4, approvedDate:'2025-01-11' },
+    { id:'ADV004', empId:'EMP002', amount:5000, reason:'Car repair', date:'2025-01-08', status:'rejected', rejectionReason:'Insufficient tenure', rejectedDate:'2025-01-09' },
+  ],
+  emailLogs: [],
+  driveFiles: [],
+  emailTemplates: [
+    { id:'TPL001', name:'Shift Assignment', type:'shift_assigned', subject:'Your Shift Has Been Assigned — {{employee_name}}', body:'Dear {{employee_name}},\n\nYour shift has been scheduled for {{date}}.\n\nShift Type: {{shift_type}}\nTiming: {{start_time}} - {{end_time}}\n\nPlease report 15 minutes before your shift starts.\n\nYou can download your schedule from Google Drive: {{drive_link}}\n\nBest regards,\nNexaHR Team' },
+    { id:'TPL002', name:'Advance Approved', type:'advance_approved', subject:'Advance Salary Approved — {{employee_name}}', body:'Dear {{employee_name}},\n\nYour advance salary request has been approved.\n\nAmount: ₹{{amount}}\nRepayment Period: {{repayment_months}} months\nMonthly Deduction: ₹{{monthly_deduction}}\n\nThe amount will be credited to your account within 24 hours.\n\nDocument: {{drive_link}}\n\nBest regards,\nNexaHR Team' },
+    { id:'TPL003', name:'Advance Rejected', type:'advance_rejected', subject:'Advance Salary Request Update — {{employee_name}}', body:'Dear {{employee_name}},\n\nYour advance salary request of ₹{{amount}} has been reviewed but could not be approved at this time.\n\nReason: {{rejection_reason}}\n\nYou may resubmit after addressing the noted concerns.\n\nBest regards,\nNexaHR Team' },
+    { id:'TPL004', name:'Welcome Email', type:'welcome', subject:'Welcome to NexaHR — {{employee_name}}', body:'Dear {{employee_name}},\n\nWelcome aboard! Your employee account has been created.\n\nEmployee ID: {{employee_id}}\nDepartment: {{department}}\nPosition: {{position}}\n\nPlease verify your email address to activate your account.\n\nBest regards,\nNexaHR Team' },
+    { id:'TPL005', name:'Payroll Summary', type:'payroll', subject:'Monthly Payroll Summary — {{employee_name}}', body:'Dear {{employee_name}},\n\nYour payroll for {{month}} has been processed.\n\nBasic Salary: ₹{{basic_salary}}\nDeductions: ₹{{deductions}}\nNet Pay: ₹{{net_pay}}\n\nSalary slip available: {{drive_link}}\n\nBest regards,\nNexaHR Team' },
+    { id:'TPL006', name:'Attendance Summary', type:'attendance', subject:'Daily Attendance Report — {{date}}', body:'Hi Admin,\n\nHere is the attendance summary for {{date}}:\n\nPresent: {{present_count}}\nAbsent: {{absent_count}}\nOn Leave: {{leave_count}}\n\nDetailed report: {{drive_link}}\n\nNexaHR System' },
+  ],
+  smtpConfig: {
+    host:'smtp.gmail.com', port:587, user:'hr@nexahr.com', pass:'app-password-xxx', fromName:'NexaHR System', encryption:'TLS'
+  },
+  otpCode: null,
+  otpEmail: null,
+  nextEmailId: 1,
+  nextDriveId: 1,
+  nextEmpId: 9,
+  nextAdvId: 5,
+};
+
+// ==================== DRIVE FOLDER STRUCTURE ====================
+const DRIVE_FOLDERS = [
+  { name:'Employees', icon:'fa-users', color:'var(--accent)', id:'folder-emp' },
+  { name:'Salary Slips', icon:'fa-file-invoice-dollar', color:'var(--warning)', id:'folder-salary' },
+  { name:'Shifts', icon:'fa-clock', color:'var(--info)', id:'folder-shifts' },
+  { name:'Attendance Reports', icon:'fa-chart-bar', color:'var(--purple)', id:'folder-attendance' },
+  { name:'Excel Uploads', icon:'fa-file-excel', color:'#22C55E', id:'folder-excel' },
+];
+
+// Seed some initial drive files and email logs
+function seedData() {
+  const now = Date.now();
+  // Seed drive files
+  const seedFiles = [
+    { name:'Amit_Patel_Profile.jpg', folder:'folder-emp', type:'image', size:'245 KB', driveId:'1aBcD001', link:'https://drive.google.com/file/d/1aBcD001', empId:'EMP001', uploadedAt:now-86400000*5 },
+    { name:'Sneha_ReddY_Profile.jpg', folder:'folder-emp', type:'image', size:'198 KB', driveId:'1aBcD002', link:'https://drive.google.com/file/d/1aBcD002', empId:'EMP002', uploadedAt:now-86400000*4 },
+    { name:'Jan_Salary_Slip_Amit.pdf', folder:'folder-salary', type:'pdf', size:'156 KB', driveId:'1aBcD003', link:'https://drive.google.com/file/d/1aBcD003', empId:'EMP001', uploadedAt:now-86400000*3 },
+    { name:'Jan_Salary_Slip_Sneha.pdf', folder:'folder-salary', type:'pdf', size:'148 KB', driveId:'1aBcD004', link:'https://drive.google.com/file/d/1aBcD004', empId:'EMP002', uploadedAt:now-86400000*3 },
+    { name:'Week3_Shift_Schedule.pdf', folder:'folder-shifts', type:'pdf', size:'89 KB', driveId:'1aBcD005', link:'https://drive.google.com/file/d/1aBcD005', empId:null, uploadedAt:now-86400000*2 },
+    { name:'Jan_Attendance_Report.xlsx', folder:'folder-attendance', type:'excel', size:'234 KB', driveId:'1aBcD006', link:'https://drive.google.com/file/d/1aBcD006', empId:null, uploadedAt:now-86400000*1 },
+    { name:'Employee_Bulk_Import_Jan.xlsx', folder:'folder-excel', type:'excel', size:'45 KB', driveId:'1aBcD007', link:'https://drive.google.com/file/d/1aBcD007', empId:null, uploadedAt:now-86400000*6 },
+    { name:'Advance_Approval_ADV003.pdf', folder:'folder-salary', type:'pdf', size:'67 KB', driveId:'1aBcD008', link:'https://drive.google.com/file/d/1aBcD008', empId:'EMP003', uploadedAt:now-86400000*2 },
+  ];
+  seedFiles.forEach(f => { f.id = 'DF' + String(DB.nextDriveId++).padStart(3,'0'); DB.driveFiles.push(f); });
+
+  // Seed email logs
+  const seedEmails = [
+    { recipient:'emp@nexahr.com', subject:'Your Shift Has Been Assigned — Amit Patel', type:'shift_assigned', status:'sent', attachment:'Week3_Shift_Schedule.pdf', driveLink:'https://drive.google.com/file/d/1aBcD005', createdAt:now-86400000*2 },
+    { recipient:'vikram@nexahr.com', subject:'Advance Salary Approved — Vikram Singh', type:'advance_approved', status:'sent', attachment:'Advance_Approval_ADV003.pdf', driveLink:'https://drive.google.com/file/d/1aBcD008', createdAt:now-86400000*2 },
+    { recipient:'sneha@nexahr.com', subject:'Advance Salary Request Update — Sneha Reddy', type:'advance_rejected', status:'sent', attachment:null, driveLink:null, createdAt:now-86400000*4 },
+    { recipient:'divya@nexahr.com', subject:'Welcome to NexaHR — Divya Nair', type:'welcome', status:'sent', attachment:null, driveLink:null, createdAt:now-86400000*6 },
+    { recipient:'emp@nexahr.com', subject:'Monthly Payroll Summary — Amit Patel', type:'payroll', status:'sent', attachment:'Jan_Salary_Slip_Amit.pdf', driveLink:'https://drive.google.com/file/d/1aBcD003', createdAt:now-86400000*3 },
+    { recipient:'hr@nexahr.com', subject:'Daily Attendance Report — 2025-01-18', type:'attendance', status:'sent', attachment:'Jan_Attendance_Report.xlsx', driveLink:'https://drive.google.com/file/d/1aBcD006', createdAt:now-86400000*1 },
+    { recipient:'invalid@email.xyz', subject:'Test Email', type:'shift_assigned', status:'failed', attachment:null, driveLink:null, createdAt:now-3600000, retryCount:2 },
+  ];
+  seedEmails.forEach(e => {
+    e.id = 'EML' + String(DB.nextEmailId++).padStart(4,'0');
+    e.retryCount = e.retryCount || 0;
+    DB.emailLogs.push(e);
+  });
+}
+
+// ==================== TOAST SYSTEM ====================
+function showToast(message, type='success') {
+  const container = document.getElementById('toastContainer');
+  const icons = { success:'fa-circle-check', error:'fa-circle-xmark', warning:'fa-triangle-exclamation', info:'fa-circle-info' };
+  const colors = { success:'var(--accent)', error:'var(--danger)', warning:'var(--warning)', info:'var(--info)' };
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<i class="fas ${icons[type]}" style="color:${colors[type]};font-size:16px"></i><span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.classList.add('toast-exit'); setTimeout(() => toast.remove(), 300); }, 4000);
+}
+
+// ==================== MODAL SYSTEM ====================
+function showModal(content) {
+  const container = document.getElementById('modalContainer');
+  container.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal-box">${content}</div></div>`;
+}
+function closeModal() { document.getElementById('modalContainer').innerHTML = ''; }
+
+// ==================== AUTH SYSTEM ====================
+function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  if (!email || !pass) { showToast('Please enter email and password','warning'); return; }
+  const user = DB.users.find(u => u.email === email && u.password === pass);
+  if (!user) { showToast('Invalid email or password','error'); return; }
+  if (!user.verified) { showToast('Please verify your email first','warning'); return; }
+  DB.currentUser = user;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userRole').textContent = user.role.charAt(0).toUpperCase()+user.role.slice(1);
+  document.getElementById('userAvatar').textContent = user.avatar;
+  initDashboard();
+  showToast(`Welcome back, ${user.name.split(' ')[0]}!`);
+}
+
+function handleLogout() {
+  DB.currentUser = null;
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('forgotForm').style.display = 'none';
+  document.getElementById('otpForm').style.display = 'none';
+  showToast('Logged out successfully','info');
+}
+
+function togglePasswordVisibility(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  const icon = btn.querySelector('i');
+  if (inp.type === 'password') { inp.type = 'text'; icon.className = 'fas fa-eye-slash'; }
+  else { inp.type = 'password'; icon.className = 'fas fa-eye'; }
+}
+
+function showForgotPassword() {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('forgotForm').style.display = 'block';
+}
+function backToLogin() {
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('forgotForm').style.display = 'none';
+  document.getElementById('otpForm').style.display = 'none';
+}
+
+function sendOTP() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { showToast('Please enter your email','warning'); return; }
+  const user = DB.users.find(u => u.email === email);
+  if (!user) { showToast('No account found with this email','error'); return; }
+  // Generate 6-digit OTP
+  DB.otpCode = String(Math.floor(100000 + Math.random()*900000));
+  DB.otpEmail = email;
+  document.getElementById('forgotForm').style.display = 'none';
+  document.getElementById('otpForm').style.display = 'block';
+  document.getElementById('otpEmailDisplay').textContent = email;
+  // Clear OTP inputs
+  document.querySelectorAll('.otp-input').forEach(i => i.value = '');
+  document.querySelector('.otp-input').focus();
+  showToast(`OTP sent to ${email} (Demo: ${DB.otpCode})`,'info');
+}
+
+function otpNext(el, idx) {
+  if (el.value && idx < 5) el.nextElementSibling?.focus();
+}
+function otpBack(e, el, idx) {
+  if (e.key === 'Backspace' && !el.value && idx > 0) el.previousElementSibling?.focus();
+}
+
+function verifyOTP() {
+  const inputs = document.querySelectorAll('.otp-input');
+  const entered = Array.from(inputs).map(i => i.value).join('');
+  if (entered.length !== 6) { showToast('Please enter all 6 digits','warning'); return; }
+  if (entered !== DB.otpCode) { showToast('Invalid OTP. Please try again.','error'); return; }
+  showToast('Password reset successful! Please login with your new password.','success');
+  backToLogin();
+}
+
+// Enter key login
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('loginScreen').style.display !== 'none') {
+    if (document.getElementById('loginForm').style.display !== 'none') handleLogin();
+    else if (document.getElementById('forgotForm').style.display !== 'none') sendOTP();
+    else verifyOTP();
+  }
+});
+
+// ==================== NAVIGATION ====================
+function navigateTo(page) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  const section = document.getElementById('page-'+page);
+  if (section) section.classList.add('active');
+  const link = document.querySelector(`.sidebar-link[data-page="${page}"]`);
+  if (link) link.classList.add('active');
+  const titles = { dashboard:'Dashboard', employees:'Employees', shifts:'Shift Management', advance:'Advance Salary', emailLogs:'Email Logs', drive:'Google Drive', templates:'Email Templates', smtp:'SMTP Settings' };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  // Render page data
+  if (page === 'employees') renderEmployees();
+  if (page === 'shifts') renderShifts();
+  if (page === 'advance') renderAdvances();
+  if (page === 'emailLogs') renderEmailLogs();
+  if (page === 'drive') renderDrive();
+  if (page === 'templates') renderTemplates();
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('mobile-open');
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  if (window.innerWidth <= 768) sb.classList.toggle('mobile-open');
+  else { sb.classList.toggle('collapsed'); document.getElementById('mainContent').classList.toggle('expanded'); }
+}
+
+// ==================== DASHBOARD ====================
+let attendanceChart = null, emailChartInstance = null;
+
+function initDashboard() {
+  // Animate stat numbers
+  animateNumber('statEmployees', DB.employees.length);
+  animateNumber('statOnShift', DB.shifts.filter(s=>s.status==='active').length);
+  animateNumber('statPending', DB.advances.filter(a=>a.status==='pending').length);
+  animateNumber('statEmails', DB.emailLogs.length);
+  animateNumber('statDrive', DB.driveFiles.length);
+  document.getElementById('emailCountBadge').textContent = DB.emailLogs.length;
+
+  // Attendance chart
+  const actx = document.getElementById('attendanceChart').getContext('2d');
+  if (attendanceChart) attendanceChart.destroy();
+  attendanceChart = new Chart(actx, {
+    type:'bar',
+    data:{
+      labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+      datasets:[
+        { label:'Present', data:[7,8,6,8,7,5,3], backgroundColor:'rgba(0,214,143,0.7)', borderRadius:6, borderSkipped:false },
+        { label:'Absent', data:[1,0,2,0,1,3,5], backgroundColor:'rgba(255,107,107,0.5)', borderRadius:6, borderSkipped:false },
+        { label:'On Leave', data:[0,0,0,0,0,0,0], backgroundColor:'rgba(255,181,71,0.5)', borderRadius:6, borderSkipped:false },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:'#8899B4', font:{size:11} } } },
+      scales:{
+        x:{ grid:{color:'rgba(30,48,72,0.5)'}, ticks:{color:'#5A6F8E',font:{size:11}} },
+        y:{ grid:{color:'rgba(30,48,72,0.5)'}, ticks:{color:'#5A6F8E',font:{size:11}}, beginAtZero:true }
+      }
+    }
+  });
+
+  // Email chart (doughnut)
+  const ectx = document.getElementById('emailChart').getContext('2d');
+  if (emailChartInstance) emailChartInstance.destroy();
+  const sent = DB.emailLogs.filter(e=>e.status==='sent').length;
+  const failed = DB.emailLogs.filter(e=>e.status==='failed').length;
+  const pending = DB.emailLogs.filter(e=>e.status==='pending').length;
+  emailChartInstance = new Chart(ectx, {
+    type:'doughnut',
+    data:{
+      labels:['Sent','Failed','Pending'],
+      datasets:[{ data:[sent,failed,pending], backgroundColor:['rgba(0,214,143,0.8)','rgba(255,107,107,0.8)','rgba(255,181,71,0.8)'], borderWidth:0, spacing:3 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'70%',
+      plugins:{ legend:{ position:'bottom', labels:{ color:'#8899B4', font:{size:11}, padding:15, usePointStyle:true, pointStyleWidth:8 } } }
+    }
+  });
+
+  // Recent activity
+  const actDiv = document.getElementById('recentActivity');
+  const activities = [
+    { icon:'fa-user-plus', color:'var(--accent)', text:'Divya Nair added to Engineering', time:'2 hours ago' },
+    { icon:'fa-clock', color:'var(--info)', text:'Shift assigned to Amit Patel — Morning', time:'3 hours ago' },
+    { icon:'fa-envelope', color:'var(--purple)', text:'Payroll email sent to 8 employees', time:'5 hours ago' },
+    { icon:'fa-cloud-arrow-up', color:'var(--warning)', text:'Attendance report uploaded to Drive', time:'6 hours ago' },
+    { icon:'fa-hand-holding-dollar', color:'var(--danger)', text:'Advance request from Neha Gupta — Pending', time:'8 hours ago' },
+    { icon:'fa-check-circle', color:'var(--accent)', text:'Vikram Singh advance approved (₹20,000)', time:'1 day ago' },
+  ];
+  actDiv.innerHTML = activities.map(a => `
+    <div class="flex items-start gap-3 p-3 rounded-lg" style="background:var(--bg-primary)">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background:${a.color}15">
+        <i class="fas ${a.icon} text-xs" style="color:${a.color}"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm" style="color:var(--text-secondary)">${a.text}</p>
+        <p class="text-xs mt-1" style="color:var(--text-muted)">${a.time}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+function animateNumber(id, target) {
+  const el = document.getElementById(id);
+  let current = 0;
+  const step = Math.max(1, Math.ceil(target/30));
+  const interval = setInterval(() => {
+    current += step;
+    if (current >= target) { current = target; clearInterval(interval); }
+    el.textContent = current;
+  }, 30);
+}
+
+function switchChartPeriod(btn, period) {
+  btn.parentElement.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const data = period === 'week'
+    ? { present:[7,8,6,8,7,5,3], absent:[1,0,2,0,1,3,5] }
+    : { present:[160,155,170,168,172,165,178,180,175,170,168,172], absent:[20,25,10,12,8,15,2,0,5,10,12,8] };
+  const labels = period === 'week' ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  attendanceChart.data.labels = labels;
+  attendanceChart.data.datasets[0].data = data.present;
+  attendanceChart.data.datasets[1].data = data.absent;
+  attendanceChart.data.datasets[2].data = labels.map(()=>0);
+  attendanceChart.update();
+}
+
+// ==================== EMPLOYEES ====================
+let employeeFilter = '', deptFilter = '';
+
+function renderEmployees() {
+  const tbody = document.getElementById('employeeTableBody');
+  let filtered = DB.employees;
+  if (employeeFilter) filtered = filtered.filter(e => e.name.toLowerCase().includes(employeeFilter) || e.id.toLowerCase().includes(employeeFilter));
+  if (deptFilter) filtered = filtered.filter(e => e.dept === deptFilter);
+
+  tbody.innerHTML = filtered.map(emp => {
+    const statusBadge = emp.status === 'active' ? 'badge-green' : emp.status === 'on_leave' ? 'badge-amber' : 'badge-red';
+    const statusText = emp.status.replace('_',' ');
+    return `<tr>
+      <td><div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:var(--accent-dim);color:var(--accent)">${emp.avatar}</div>
+        <div><p class="text-sm font-semibold" style="color:var(--text-primary)">${emp.name}</p><p class="text-xs" style="color:var(--text-muted)">${emp.email}</p></div>
+      </div></td>
+      <td style="color:var(--text-primary);font-family:'Space Grotesk';font-size:13px">${emp.id}</td>
+      <td>${emp.dept}</td>
+      <td>${emp.position}</td>
+      <td><span class="badge badge-blue">${emp.shift}</span></td>
+      <td><span class="badge ${statusBadge}">${statusText}</span></td>
+      <td>
+        <div class="flex gap-1">
+          <button onclick="viewEmployee('${emp.id}')" class="btn btn-secondary btn-sm btn-icon" title="View"><i class="fas fa-eye text-xs"></i></button>
+          <button onclick="deleteEmployee('${emp.id}')" class="btn btn-secondary btn-sm btn-icon" title="Delete" style="color:var(--danger)"><i class="fas fa-trash text-xs"></i></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterEmployees(val) { employeeFilter = val.toLowerCase(); renderEmployees(); }
+function filterByDept(val) { deptFilter = val; renderEmployees(); }
+
+function showAddEmployeeModal() {
+  showModal(`
+    <h3 class="text-lg font-bold mb-4">Add New Employee</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">FULL NAME</label><input type="text" class="input-field" id="newEmpName" placeholder="John Doe"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">EMAIL</label><input type="email" class="input-field" id="newEmpEmail" placeholder="john@company.com"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">DEPARTMENT</label>
+        <select class="input-field" id="newEmpDept"><option>Engineering</option><option>Design</option><option>Marketing</option><option>Sales</option><option>HR</option><option>Finance</option></select></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">POSITION</label><input type="text" class="input-field" id="newEmpPos" placeholder="Developer"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">PHONE</label><input type="text" class="input-field" id="newEmpPhone" placeholder="+91-XXXXXXXXXX"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">MONTHLY SALARY</label><input type="number" class="input-field" id="newEmpSalary" placeholder="70000"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">DEFAULT SHIFT</label>
+        <select class="input-field" id="newEmpShift"><option>Morning</option><option>Evening</option><option>Night</option></select></div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="addEmployee()" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Add Employee</button>
+      <button onclick="closeModal()" class="btn btn-secondary btn-sm">Cancel</button>
+    </div>
+  `);
+}
+
+function addEmployee() {
+  const name = document.getElementById('newEmpName').value.trim();
+  const email = document.getElementById('newEmpEmail').value.trim();
+  if (!name || !email) { showToast('Name and email are required','warning'); return; }
+  const id = 'EMP' + String(DB.nextEmpId++).padStart(3,'0');
+  const avatar = name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const emp = {
+    id, name, email,
+    dept: document.getElementById('newEmpDept').value,
+    position: document.getElementById('newEmpPos').value || 'Employee',
+    shift: document.getElementById('newEmpShift').value,
+    status:'active', avatar,
+    phone: document.getElementById('newEmpPhone').value || '',
+    joined: new Date().toISOString().split('T')[0],
+    salary: parseInt(document.getElementById('newEmpSalary').value) || 50000,
+  };
+  DB.employees.push(emp);
+  // Simulate: upload photo to Drive, send welcome email
+  simulateDriveUpload(`${name.replace(/\s/g,'_')}_Profile.jpg`, 'folder-emp', 'image', id);
+  sendSimulatedEmail(email, 'Welcome to NexaHR — ' + name, 'welcome', null, null);
+  closeModal();
+  renderEmployees();
+  showToast(`${name} added successfully! Welcome email sent.`);
+}
+
+function viewEmployee(id) {
+  const emp = DB.employees.find(e=>e.id===id);
+  if (!emp) return;
+  const files = DB.driveFiles.filter(f=>f.empId===id);
+  const emails = DB.emailLogs.filter(e=>e.recipient===emp.email);
+  showModal(`
+    <div class="flex items-center gap-4 mb-5">
+      <div class="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold" style="background:var(--accent-dim);color:var(--accent)">${emp.avatar}</div>
+      <div>
+        <h3 class="text-lg font-bold">${emp.name}</h3>
+        <p class="text-sm" style="color:var(--text-muted)">${emp.id} &middot; ${emp.position}</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div class="p-3 rounded-lg" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">Department</p><p class="text-sm font-semibold mt-1">${emp.dept}</p></div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">Shift</p><p class="text-sm font-semibold mt-1">${emp.shift}</p></div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">Email</p><p class="text-sm font-semibold mt-1">${emp.email}</p></div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">Phone</p><p class="text-sm font-semibold mt-1">${emp.phone}</p></div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">Salary</p><p class="text-sm font-semibold mt-1">₹${emp.salary.toLocaleString()}</p></div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">Joined</p><p class="text-sm font-semibold mt-1">${emp.joined}</p></div>
+    </div>
+    <div class="mb-3">
+      <p class="text-xs font-semibold mb-2" style="color:var(--text-muted)">DRIVE FILES (${files.length})</p>
+      ${files.length ? files.map(f=>`<div class="drive-file mb-2"><i class="fas ${f.type==='pdf'?'fa-file-pdf text-red-400':f.type==='excel'?'fa-file-excel text-green-400':'fa-file-image text-blue-400'}"></i><div class="flex-1"><p class="text-sm">${f.name}</p><p class="text-xs" style="color:var(--text-muted)">${f.size}</p></div><a href="${f.link}" target="_blank" class="text-xs" style="color:var(--accent)"><i class="fas fa-external-link-alt"></i></a></div>`).join('') : '<p class="text-sm" style="color:var(--text-muted)">No files</p>'}
+    </div>
+    <div>
+      <p class="text-xs font-semibold mb-2" style="color:var(--text-muted)">EMAILS SENT (${emails.length})</p>
+      ${emails.length ? emails.map(e=>`<div class="flex items-center gap-2 mb-2 p-2 rounded" style="background:var(--bg-primary)"><i class="fas fa-envelope text-xs" style="color:var(--purple)"></i><div class="flex-1 min-w-0"><p class="text-sm truncate">${e.subject}</p><p class="text-xs" style="color:var(--text-muted)">${new Date(e.createdAt).toLocaleString()}</p></div><span class="badge ${e.status==='sent'?'badge-green':'badge-red'}">${e.status}</span></div>`).join('') : '<p class="text-sm" style="color:var(--text-muted)">No emails</p>'}
+    </div>
+    <button onclick="closeModal()" class="btn btn-secondary btn-sm mt-4 w-full justify-center">Close</button>
+  `);
+}
+
+function deleteEmployee(id) {
+  const emp = DB.employees.find(e=>e.id===id);
+  if (!emp) return;
+  showModal(`
+    <div class="text-center">
+      <div class="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style="background:var(--danger-dim)"><i class="fas fa-exclamation-triangle text-xl" style="color:var(--danger)"></i></div>
+      <h3 class="text-lg font-bold mb-2">Delete Employee</h3>
+      <p class="text-sm mb-5" style="color:var(--text-secondary)">Are you sure you want to remove <strong>${emp.name}</strong>? This action cannot be undone.</p>
+      <div class="flex gap-3 justify-center">
+        <button onclick="confirmDeleteEmployee('${id}')" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i> Delete</button>
+        <button onclick="closeModal()" class="btn btn-secondary btn-sm">Cancel</button>
+      </div>
+    </div>
+  `);
+}
+function confirmDeleteEmployee(id) {
+  DB.employees = DB.employees.filter(e=>e.id!==id);
+  closeModal();
+  renderEmployees();
+  showToast('Employee removed','info');
+}
+
+function showImportModal() {
+  showModal(`
+    <h3 class="text-lg font-bold mb-4">Import Employees from Excel</h3>
+    <div class="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer" style="border-color:var(--border-light)" onclick="simulateExcelImport()">
+      <i class="fas fa-file-excel text-4xl mb-3" style="color:#22C55E"></i>
+      <p class="text-sm font-semibold">Click to upload Excel file</p>
+      <p class="text-xs mt-1" style="color:var(--text-muted)">Supports .xlsx, .xls format</p>
+    </div>
+    <button onclick="closeModal()" class="btn btn-secondary btn-sm mt-4 w-full justify-center">Cancel</button>
+  `);
+}
+function simulateExcelImport() {
+  closeModal();
+  showToast('Processing Excel file...','info');
+  setTimeout(() => {
+    const fileName = 'Employee_Bulk_Import_' + new Date().toISOString().split('T')[0] + '.xlsx';
+    simulateDriveUpload(fileName, 'folder-excel', 'excel');
+    sendSimulatedEmail(DB.currentUser.email, 'Excel Import Completed — ' + DB.employees.length + ' records', 'attendance', fileName, null);
+    showToast('Excel imported! ' + DB.employees.length + ' employees processed. File uploaded to Drive.');
+  }, 1500);
+}
+
+// ==================== SHIFT MANAGEMENT ====================
+function renderShifts() {
+  // Current schedule cards
+  const container = document.getElementById('shiftCards');
+  const activeShifts = DB.shifts.filter(s => s.status === 'active' || s.status === 'scheduled');
+  container.innerHTML = activeShifts.map(s => {
+    const emp = DB.employees.find(e=>e.id===s.empId);
+    if (!emp) return '';
+    const colors = { Morning:'var(--accent)', Evening:'var(--warning)', Night:'var(--purple)' };
+    const c = colors[s.type] || 'var(--info)';
+    const isActive = s.status === 'active';
+    return `<div class="card" style="border-left:3px solid ${c}">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:var(--accent-dim);color:var(--accent)">${emp.avatar}</div>
+          <div><p class="text-sm font-semibold">${emp.name}</p><p class="text-xs" style="color:var(--text-muted)">${emp.id}</p></div>
+        </div>
+        <span class="badge ${isActive?'badge-green':'badge-blue'}">${s.status}</span>
+      </div>
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <div class="p-2 rounded-lg text-center" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">Type</p><p class="text-sm font-semibold mt-1" style="color:${c}">${s.type}</p></div>
+        <div class="p-2 rounded-lg text-center" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">Start</p><p class="text-sm font-semibold mt-1">${s.start}</p></div>
+        <div class="p-2 rounded-lg text-center" style="background:var(--bg-primary)"><p class="text-xs" style="color:var(--text-muted)">End</p><p class="text-sm font-semibold mt-1">${s.end}</p></div>
+      </div>
+      <p class="text-xs" style="color:var(--text-muted)"><i class="fas fa-calendar mr-1"></i>${s.date}</p>
+      ${isActive ? '<div class="flex items-center gap-2 mt-3"><div class="pulse-dot"></div><span class="text-xs font-semibold" style="color:var(--accent)">Currently on shift</span></div>' : ''}
+    </div>`;
+  }).join('');
+
+  // History table
+  const historyBody = document.getElementById('shiftHistoryBody');
+  const completed = DB.shifts.filter(s => s.status === 'completed');
+  historyBody.innerHTML = completed.map(s => {
+    const emp = DB.employees.find(e=>e.id===s.empId);
+    return `<tr>
+      <td>${emp?emp.name:'Unknown'}</td>
+      <td><span class="badge badge-blue">${s.type}</span></td>
+      <td>${s.date}</td>
+      <td>${s.start} - ${s.end}</td>
+      <td><span class="badge badge-green">Completed</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function switchShiftTab(btn, tab) {
+  btn.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('shiftScheduleView').style.display = tab==='schedule' ? 'block' : 'none';
+  document.getElementById('shiftHistoryView').style.display = tab==='history' ? 'block' : 'none';
+}
+
+function showAssignShiftModal() {
+  const empOptions = DB.employees.map(e=>`<option value="${e.id}">${e.name} (${e.id})</option>`).join('');
+  showModal(`
+    <h3 class="text-lg font-bold mb-4">Assign Shift</h3>
+    <div class="space-y-4">
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">EMPLOYEE</label><select class="input-field" id="shiftEmp">${empOptions}</select></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">SHIFT TYPE</label><select class="input-field" id="shiftType"><option>Morning</option><option>Evening</option><option>Night</option></select></div>
+        <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">DATE</label><input type="date" class="input-field" id="shiftDate" value="${new Date().toISOString().split('T')[0]}"></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">START TIME</label><input type="time" class="input-field" id="shiftStart" value="06:00"></div>
+        <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">END TIME</label><input type="time" class="input-field" id="shiftEnd" value="14:00"></div>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="assignShift()" class="btn btn-primary btn-sm"><i class="fas fa-calendar-check"></i> Assign Shift</button>
+      <button onclick="closeModal()" class="btn btn-secondary btn-sm">Cancel</button>
+    </div>
+  `);
+}
+
+function assignShift() {
+  const empId = document.getElementById('shiftEmp').value;
+  const emp = DB.employees.find(e=>e.id===empId);
+  const type = document.getElementById('shiftType').value;
+  const date = document.getElementById('shiftDate').value;
+  const start = document.getElementById('shiftStart').value;
+  const end = document.getElementById('shiftEnd').value;
+  if (!emp) { showToast('Select an employee','warning'); return; }
+
+  const shift = { id:'SH'+String(DB.shifts.length+1).padStart(3,'0'), empId, type, date, start, end, status:'scheduled' };
+  DB.shifts.push(shift);
+  emp.shift = type;
+
+  // Simulate: generate PDF, upload to Drive, send email
+  const fileName = `Shift_${type}_${emp.name.replace(/\s/g,'_')}_${date}.pdf`;
+  const driveFile = simulateDriveUpload(fileName, 'folder-shifts', 'pdf', empId);
+  const subject = `Your Shift Has Been Assigned — ${emp.name}`;
+  sendSimulatedEmail(emp.email, subject, 'shift_assigned', fileName, driveFile?.link);
+
+  closeModal();
+  renderShifts();
+  showToast(`Shift assigned to ${emp.name}. PDF uploaded to Drive and email sent.`);
+}
+
+// ==================== ADVANCE SALARY ====================
+let advanceFilter = 'pending';
+
+function renderAdvances() {
+  const tbody = document.getElementById('advanceTableBody');
+  let filtered = DB.advances;
+  if (advanceFilter !== 'all') filtered = filtered.filter(a => a.status === advanceFilter);
+
+  tbody.innerHTML = filtered.map(adv => {
+    const emp = DB.employees.find(e=>e.id===adv.empId);
+    const statusMap = { pending:'badge-amber', approved:'badge-green', rejected:'badge-red' };
+    const actions = adv.status === 'pending' ? `
+      <button onclick="approveAdvance('${adv.id}')" class="btn btn-sm btn-icon" style="background:var(--accent-dim);color:var(--accent);border:none;cursor:pointer" title="Approve"><i class="fas fa-check text-xs"></i></button>
+      <button onclick="rejectAdvance('${adv.id}')" class="btn btn-sm btn-icon" style="background:var(--danger-dim);color:var(--danger);border:none;cursor:pointer" title="Reject"><i class="fas fa-times text-xs"></i></button>
+    ` : '<span class="text-xs" style="color:var(--text-muted)">—</span>';
+    return `<tr>
+      <td style="font-family:'Space Grotesk';font-size:13px;color:var(--text-primary)">${adv.id}</td>
+      <td>${emp?emp.name:'Unknown'}</td>
+      <td style="color:var(--text-primary);font-weight:600">₹${adv.amount.toLocaleString()}</td>
+      <td>${adv.reason}</td>
+      <td>${adv.date}</td>
+      <td><span class="badge ${statusMap[adv.status]}">${adv.status}</span></td>
+      <td><div class="flex gap-1">${actions}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function switchAdvanceTab(btn, filter) {
+  btn.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  advanceFilter = filter;
+  renderAdvances();
+}
+
+function showNewAdvanceModal() {
+  const empOptions = DB.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  showModal(`
+    <h3 class="text-lg font-bold mb-4">New Advance Request</h3>
+    <div class="space-y-4">
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">EMPLOYEE</label><select class="input-field" id="advEmp">${empOptions}</select></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">AMOUNT (₹)</label><input type="number" class="input-field" id="advAmount" placeholder="10000"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">REASON</label><textarea class="input-field" id="advReason" rows="3" placeholder="Describe the reason..."></textarea></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">REPAYMENT MONTHS</label><input type="number" class="input-field" id="advMonths" value="3" min="1" max="12"></div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="submitAdvance()" class="btn btn-primary btn-sm"><i class="fas fa-paper-plane"></i> Submit Request</button>
+      <button onclick="closeModal()" class="btn btn-secondary btn-sm">Cancel</button>
+    </div>
+  `);
+}
+
+function submitAdvance() {
+  const empId = document.getElementById('advEmp').value;
+  const emp = DB.employees.find(e=>e.id===empId);
+  const amount = parseInt(document.getElementById('advAmount').value);
+  const reason = document.getElementById('advReason').value.trim();
+  const months = parseInt(document.getElementById('advMonths').value) || 3;
+  if (!amount || amount <= 0) { showToast('Enter a valid amount','warning'); return; }
+  if (!reason) { showToast('Enter a reason','warning'); return; }
+
+  const adv = { id:'ADV'+String(DB.nextAdvId++).padStart(3,'0'), empId, amount, reason, date:new Date().toISOString().split('T')[0], status:'pending', repaymentMonths:months };
+  DB.advances.push(adv);
+  sendSimulatedEmail(emp.email, `Advance Salary Request Submitted — ${emp.name}`, 'shift_assigned', null, null);
+  closeModal();
+  renderAdvances();
+  showToast(`Advance request of ₹${amount.toLocaleString()} submitted for ${emp.name}`);
+}
+
+function approveAdvance(id) {
+  const adv = DB.advances.find(a=>a.id===id);
+  if (!adv) return;
+  const emp = DB.employees.find(e=>e.id===adv.empId);
+  adv.status = 'approved';
+  adv.approvedDate = new Date().toISOString().split('T')[0];
+
+  const fileName = `Advance_Approval_${adv.id}.pdf`;
+  const driveFile = simulateDriveUpload(fileName, 'folder-salary', 'pdf', adv.empId);
+  const monthly = Math.round(adv.amount / adv.repaymentMonths);
+  sendSimulatedEmail(emp.email, `Advance Salary Approved — ${emp.name}`, 'advance_approved', fileName, driveFile?.link);
+
+  renderAdvances();
+  showToast(`Advance approved for ${emp.name}. Email sent with Drive link.`);
+}
+
+function rejectAdvance(id) {
+  const adv = DB.advances.find(a=>a.id===id);
+  if (!adv) return;
+  const emp = DB.employees.find(e=>e.id===adv.empId);
+  showModal(`
+    <h3 class="text-lg font-bold mb-4">Reject Advance Request</h3>
+    <p class="text-sm mb-3" style="color:var(--text-secondary)">Rejecting ${emp.name}'s request of ₹${adv.amount.toLocaleString()}</p>
+    <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">REJECTION REASON</label><textarea class="input-field" id="rejectReason" rows="3" placeholder="Why is this being rejected?"></textarea></div>
+    <div class="flex gap-3 mt-4">
+      <button onclick="confirmRejectAdvance('${id}')" class="btn btn-danger btn-sm"><i class="fas fa-times"></i> Reject</button>
+      <button onclick="closeModal()" class="btn btn-secondary btn-sm">Cancel</button>
+    </div>
+  `);
+}
+function confirmRejectAdvance(id) {
+  const adv = DB.advances.find(a=>a.id===id);
+  if (!adv) return;
+  const emp = DB.employees.find(e=>e.id===adv.empId);
+  const reason = document.getElementById('rejectReason').value.trim() || 'Not specified';
+  adv.status = 'rejected';
+  adv.rejectionReason = reason;
+  adv.rejectedDate = new Date().toISOString().split('T')[0];
+  sendSimulatedEmail(emp.email, `Advance Salary Request Update — ${emp.name}`, 'advance_rejected', null, null);
+  closeModal();
+  renderAdvances();
+  showToast(`Advance rejected for ${emp.name}. Notification email sent.`,'warning');
+}
+
+// ==================== EMAIL SYSTEM (SIMULATED) ====================
+function sendSimulatedEmail(recipient, subject, type, attachmentName, driveLink) {
+  const log = {
+    id: 'EML' + String(DB.nextEmailId++).padStart(4,'0'),
+    recipient, subject, type, attachment: attachmentName, driveLink,
+    status: 'pending',
+    retryCount: 0,
+    createdAt: Date.now(),
+  };
+  DB.emailLogs.unshift(log);
+  updateEmailBadge();
+
+  // Simulate sending delay — 95% success rate
+  const success = Math.random() > 0.05;
+  setTimeout(() => {
+    log.status = success ? 'sent' : 'failed';
+    if (!success) {
+      // Auto retry after 5 seconds (simulated)
+      setTimeout(() => {
+        if (log.retryCount < 3) {
+          log.retryCount++;
+          log.status = Math.random() > 0.3 ? 'sent' : 'failed';
+        }
+        updateEmailBadge();
+        if (log.status === 'failed') {
+          showToast(`Email to ${recipient} failed after retry. Check email logs.`, 'error');
+        }
+      }, 5000);
+    }
+    updateEmailBadge();
+  }, 800 + Math.random()*1200);
+}
+
+function updateEmailBadge() {
+  const badge = document.getElementById('emailCountBadge');
+  if (badge) badge.textContent = DB.emailLogs.length;
+}
+
+// ==================== EMAIL LOGS PAGE ====================
+let emailSearch = '', emailTypeFilter = '', emailStatusFilter = '';
+
+function renderEmailLogs() {
+  const tbody = document.getElementById('emailLogBody');
+  let filtered = DB.emailLogs;
+  if (emailSearch) filtered = filtered.filter(e => e.subject.toLowerCase().includes(emailSearch) || e.recipient.toLowerCase().includes(emailSearch) || e.id.toLowerCase().includes(emailSearch));
+  if (emailTypeFilter) filtered = filtered.filter(e => e.type === emailTypeFilter);
+  if (emailStatusFilter) filtered = filtered.filter(e => e.status === emailStatusFilter);
+
+  const statusBadge = { sent:'badge-green', failed:'badge-red', pending:'badge-amber' };
+  const typeBadge = { shift_assigned:'badge-blue', advance_approved:'badge-green', advance_rejected:'badge-red', welcome:'badge-purple', payroll:'badge-amber', attendance:'badge-blue' };
+
+  tbody.innerHTML = filtered.map(e => `<tr class="log-row">
+    <td style="font-family:'Space Grotesk';font-size:12px;color:var(--text-muted)">${e.id}</td>
+    <td style="color:var(--text-primary)">${e.recipient}</td>
+    <td><span class="text-sm truncate block" style="max-width:240px">${e.subject}</span></td>
+    <td><span class="badge ${typeBadge[e.type]||'badge-blue'}">${e.type.replace('_',' ')}</span></td>
+    <td><span class="badge ${statusBadge[e.status]||'badge-amber'}">${e.status}${e.retryCount?' ('+e.retryCount+' retries)':''}</span></td>
+    <td class="text-xs" style="color:var(--text-muted)">${new Date(e.createdAt).toLocaleString()}</td>
+    <td>${e.attachment ? `<span class="text-xs" style="color:var(--text-secondary)"><i class="fas fa-paperclip mr-1"></i>${e.attachment}</span>` : '<span class="text-xs" style="color:var(--text-muted)">None</span>'}</td>
+    <td>
+      <div class="flex gap-1">
+        ${e.driveLink ? `<a href="${e.driveLink}" target="_blank" class="btn btn-sm btn-icon" style="background:transparent;border:1px solid var(--border);color:var(--info);cursor:pointer;text-decoration:none" title="Open in Drive"><i class="fab fa-google-drive text-xs"></i></a>` : ''}
+        ${e.status==='failed' ? `<button onclick="retrySingleEmail('${e.id}')" class="btn btn-sm btn-icon" style="background:var(--warning-dim);color:var(--warning);border:none;cursor:pointer" title="Retry"><i class="fas fa-redo text-xs"></i></button>` : ''}
+        <button onclick="viewEmailDetail('${e.id}')" class="btn btn-sm btn-icon" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer" title="Details"><i class="fas fa-eye text-xs"></i></button>
+      </div>
+    </td>
+  </tr>`).join('');
+
+  document.getElementById('emailLogSummary').textContent = `Showing ${filtered.length} of ${DB.emailLogs.length} emails`;
+}
+
+function filterEmailLogs(val) { emailSearch = val.toLowerCase(); renderEmailLogs(); }
+function filterEmailType(val) { emailTypeFilter = val; renderEmailLogs(); }
+function filterEmailStatus(val) { emailStatusFilter = val; renderEmailLogs(); }
+
+function retrySingleEmail(id) {
+  const log = DB.emailLogs.find(e=>e.id===id);
+  if (!log) return;
+  log.status = 'pending';
+  log.retryCount++;
+  renderEmailLogs();
+  showToast(`Retrying email ${id}...`,'info');
+  setTimeout(() => {
+    log.status = Math.random() > 0.2 ? 'sent' : 'failed';
+    renderEmailLogs();
+    if (log.status === 'sent') showToast(`Email ${id} sent successfully!`);
+    else showToast(`Email ${id} still failing`,'error');
+  }, 2000);
+}
+
+function retryFailedEmails() {
+  const failed = DB.emailLogs.filter(e=>e.status==='failed');
+  if (!failed.length) { showToast('No failed emails to retry','info'); return; }
+  failed.forEach(e => { e.status = 'pending'; e.retryCount++; });
+  renderEmailLogs();
+  showToast(`Retrying ${failed.length} failed emails...`,'info');
+  setTimeout(() => {
+    failed.forEach(e => { e.status = Math.random() > 0.2 ? 'sent' : 'failed'; });
+    renderEmailLogs();
+    const sent = failed.filter(e=>e.status==='sent').length;
+    showToast(`${sent} of ${failed.length} emails sent successfully`);
+  }, 2500);
+}
+
+function viewEmailDetail(id) {
+  const log = DB.emailLogs.find(e=>e.id===id);
+  if (!log) return;
+  const template = DB.emailTemplates.find(t=>t.type===log.type);
+  const statusColor = { sent:'var(--accent)', failed:'var(--danger)', pending:'var(--warning)' };
+  showModal(`
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-bold">Email Detail</h3>
+      <span class="badge ${log.status==='sent'?'badge-green':log.status==='failed'?'badge-red':'badge-amber'}">${log.status}</span>
+    </div>
+    <div class="space-y-3 mb-4">
+      <div class="flex justify-between p-3 rounded-lg" style="background:var(--bg-primary)"><span class="text-xs" style="color:var(--text-muted)">Email ID</span><span class="text-sm font-semibold">${log.id}</span></div>
+      <div class="flex justify-between p-3 rounded-lg" style="background:var(--bg-primary)"><span class="text-xs" style="color:var(--text-muted)">Recipient</span><span class="text-sm font-semibold">${log.recipient}</span></div>
+      <div class="flex justify-between p-3 rounded-lg" style="background:var(--bg-primary)"><span class="text-xs" style="color:var(--text-muted)">Subject</span><span class="text-sm font-semibold">${log.subject}</span></div>
+      <div class="flex justify-between p-3 rounded-lg" style="background:var(--bg-primary)"><span class="text-xs" style="color:var(--text-muted)">Type</span><span class="text-sm font-semibold">${log.type}</span></div>
+      <div class="flex justify-between p-3 rounded-lg" style="background:var(--bg-primary)"><span class="text-xs" style="color:var(--text-muted)">Sent At</span><span class="text-sm font-semibold">${new Date(log.createdAt).toLocaleString()}</span></div>
+      <div class="flex justify-between p-3 rounded-lg" style="background:var(--bg-primary)"><span class="text-xs" style="color:var(--text-muted)">Retry Count</span><span class="text-sm font-semibold">${log.retryCount}</span></div>
+      <div class="flex justify-between p-3 rounded-lg" style="background:var(--bg-primary)"><span class="text-xs" style="color:var(--text-muted)">Attachment</span><span class="text-sm font-semibold">${log.attachment||'None'}</span></div>
+      ${log.driveLink ? `<div class="p-3 rounded-lg" style="background:var(--bg-primary)"><span class="text-xs block mb-1" style="color:var(--text-muted)">Drive Link</span><a href="${log.driveLink}" target="_blank" class="text-sm font-semibold" style="color:var(--accent)">${log.driveLink}</a></div>` : ''}
+    </div>
+    ${template ? `<div class="p-4 rounded-lg" style="background:var(--bg-primary)"><p class="text-xs font-semibold mb-2" style="color:var(--text-muted)">TEMPLATE PREVIEW</p><pre class="text-sm whitespace-pre-wrap" style="color:var(--text-secondary);font-family:'DM Sans'">${template.body}</pre></div>` : ''}
+    <button onclick="closeModal()" class="btn btn-secondary btn-sm mt-4 w-full justify-center">Close</button>
+  `);
+}
+
+function exportEmailLogs() {
+  const csv = 'ID,Recipient,Subject,Type,Status,Time,Attachment,Drive Link\n' +
+    DB.emailLogs.map(e => `${e.id},"${e.recipient}","${e.subject}",${e.type},${e.status},"${new Date(e.createdAt).toLocaleString()}","${e.attachment||''}","${e.driveLink||''}"`).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'email_logs_' + new Date().toISOString().split('T')[0] + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  showToast('Email logs exported as CSV');
+}
+
+// ==================== GOOGLE DRIVE (SIMULATED) ====================
+let currentFolder = null;
+let driveSearch = '';
+
+function renderDrive() {
+  // Folders
+  const folderContainer = document.getElementById('driveFolders');
+  folderContainer.innerHTML = DRIVE_FOLDERS.map(f => {
+    const count = DB.driveFiles.filter(df => df.folder === f.id).length;
+    return `<div class="drive-folder ${currentFolder===f.id?'ring-1':''}" style="${currentFolder===f.id?'border-color:var(--accent);background:var(--accent-dim)':''}" onclick="selectDriveFolder('${f.id}')">
+      <i class="fas ${f.icon} text-2xl" style="color:${f.color}"></i>
+      <p class="text-sm font-semibold">${f.name}</p>
+      <p class="text-xs" style="color:var(--text-muted)">${count} files</p>
+    </div>`;
+  }).join('');
+
+  // Files
+  const filesList = document.getElementById('driveFilesList');
+  const emptyState = document.getElementById('driveEmpty');
+  let files = DB.driveFiles;
+  if (currentFolder) files = files.filter(f => f.folder === currentFolder);
+  if (driveSearch) files = files.filter(f => f.name.toLowerCase().includes(driveSearch));
+
+  document.getElementById('driveCurrentFolder').textContent = currentFolder ? DRIVE_FOLDERS.find(f=>f.id===currentFolder)?.name || 'Files' : 'All Files';
+
+  if (!files.length) { filesList.innerHTML = ''; emptyState.style.display = 'block'; return; }
+  emptyState.style.display = 'none';
+
+  const iconMap = { pdf:'fa-file-pdf text-red-400', excel:'fa-file-excel text-green-400', image:'fa-file-image text-blue-400', doc:'fa-file-word text-blue-300' };
+  filesList.innerHTML = files.map(f => {
+    const emp = f.empId ? DB.employees.find(e=>e.id===f.empId) : null;
+    return `<div class="drive-file">
+      <i class="fas ${iconMap[f.type]||'fa-file text-gray-400'} text-lg" style="width:24px;text-align:center"></i>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold truncate" style="color:var(--text-primary)">${f.name}</p>
+        <p class="text-xs" style="color:var(--text-muted)">${f.size} &middot; ${new Date(f.uploadedAt).toLocaleDateString()} ${emp?'&middot; '+emp.name:''}</p>
+      </div>
+      <span class="text-xs px-2 py-1 rounded" style="background:var(--bg-primary);color:var(--text-muted)">${f.driveId}</span>
+      <a href="${f.link}" target="_blank" class="btn btn-sm btn-icon" style="background:transparent;border:1px solid var(--border);color:var(--accent);cursor:pointer;text-decoration:none" title="Open in Drive"><i class="fas fa-external-link-alt text-xs"></i></a>
+      <button onclick="copyDriveLink('${f.link}')" class="btn btn-sm btn-icon" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);cursor:pointer" title="Copy Link"><i class="fas fa-link text-xs"></i></button>
+    </div>`;
+  }).join('');
+}
+
+function selectDriveFolder(folderId) {
+  currentFolder = currentFolder === folderId ? null : folderId;
+  renderDrive();
+}
+
+function filterDriveFiles(val) { driveSearch = val.toLowerCase(); renderDrive(); }
+
+function simulateDriveUpload(name, folder, type, empId) {
+  const file = {
+    id: 'DF' + String(DB.nextDriveId++).padStart(3,'0'),
+    name, folder, type,
+    size: (Math.floor(Math.random()*300)+30) + ' KB',
+    driveId: '1xYz' + String(Math.floor(Math.random()*9999)).padStart(4,'0'),
+    link: 'https://drive.google.com/file/d/' + '1xYz' + String(Math.floor(Math.random()*9999)).padStart(4,'0'),
+    empId: empId || null,
+    uploadedAt: Date.now(),
+  };
+  DB.driveFiles.unshift(file);
+  return file;
+}
+
+function copyDriveLink(link) {
+  navigator.clipboard.writeText(link).then(() => showToast('Drive link copied!')).catch(() => showToast('Link: ' + link, 'info'));
+}
+
+function showUploadModal() {
+  const folderOptions = DRIVE_FOLDERS.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  showModal(`
+    <h3 class="text-lg font-bold mb-4">Upload to Google Drive</h3>
+    <div class="space-y-4">
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">FOLDER</label><select class="input-field" id="uploadFolder">${folderOptions}</select></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">FILE NAME</label><input type="text" class="input-field" id="uploadName" placeholder="document.pdf"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">FILE TYPE</label><select class="input-field" id="uploadType"><option value="pdf">PDF</option><option value="excel">Excel</option><option value="image">Image</option><option value="doc">Document</option></select></div>
+      <div class="border-2 border-dashed rounded-xl p-6 text-center" style="border-color:var(--border-light)">
+        <i class="fas fa-cloud-arrow-up text-3xl mb-2" style="color:var(--text-muted)"></i>
+        <p class="text-sm" style="color:var(--text-muted)">File upload simulated — enter name above</p>
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="doUpload()" class="btn btn-primary btn-sm"><i class="fas fa-cloud-arrow-up"></i> Upload</button>
+      <button onclick="closeModal()" class="btn btn-secondary btn-sm">Cancel</button>
+    </div>
+  `);
+}
+
+function doUpload() {
+  const name = document.getElementById('uploadName').value.trim();
+  if (!name) { showToast('Enter a file name','warning'); return; }
+  const folder = document.getElementById('uploadFolder').value;
+  const type = document.getElementById('uploadType').value;
+  simulateDriveUpload(name, folder, type);
+  closeModal();
+  renderDrive();
+  showToast(`"${name}" uploaded to Google Drive successfully!`);
+}
+
+// ==================== EMAIL TEMPLATES ====================
+let selectedTemplate = null;
+
+function renderTemplates() {
+  const list = document.getElementById('templateList');
+  list.innerHTML = DB.emailTemplates.map(t => `
+    <div class="drive-file cursor-pointer ${selectedTemplate===t.id?'ring-1':''}" style="${selectedTemplate===t.id?'border-color:var(--accent);background:var(--accent-dim)':''}" onclick="selectTemplate('${t.id}')">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--purple-dim)"><i class="fas fa-palette text-xs" style="color:var(--purple)"></i></div>
+      <div class="flex-1">
+        <p class="text-sm font-semibold" style="color:var(--text-primary)">${t.name}</p>
+        <p class="text-xs" style="color:var(--text-muted)">${t.type}</p>
+      </div>
+      <i class="fas fa-chevron-right text-xs" style="color:var(--text-muted)"></i>
+    </div>
+  `).join('');
+
+  if (selectedTemplate) showTemplateEditor(selectedTemplate);
+}
+
+function selectTemplate(id) {
+  selectedTemplate = id;
+  renderTemplates();
+}
+
+function showTemplateEditor(id) {
+  const t = DB.emailTemplates.find(tpl=>tpl.id===id);
+  if (!t) return;
+  const editor = document.getElementById('templateEditor');
+  editor.innerHTML = `
+    <h3 class="text-sm font-bold mb-3">Edit: ${t.name}</h3>
+    <div class="space-y-3">
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">TEMPLATE NAME</label><input type="text" class="input-field" id="tplName" value="${t.name}"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">SUBJECT LINE</label><input type="text" class="input-field" id="tplSubject" value="${t.subject}"></div>
+      <div><label class="block text-xs font-semibold mb-1" style="color:var(--text-secondary)">BODY</label><textarea class="input-field" id="tplBody" rows="10" style="font-family:monospace;font-size:13px">${t.body}</textarea></div>
+      <div class="p-3 rounded-lg" style="background:var(--bg-primary)">
+        <p class="text-xs font-semibold mb-2" style="color:var(--text-muted)">AVAILABLE VARIABLES</p>
+        <div class="flex flex-wrap gap-2">
+          ${['{{employee_name}}','{{employee_id}}','{{date}}','{{shift_type}}','{{start_time}}','{{end_time}}','{{amount}}','{{repayment_months}}','{{monthly_deduction}}','{{department}}','{{position}}','{{drive_link}}','{{rejection_reason}}','{{basic_salary}}','{{deductions}}','{{net_pay}}','{{month}}','{{present_count}}','{{absent_count}}','{{leave_count}}'].map(v=>`<span class="text-xs px-2 py-1 rounded" style="background:var(--accent-dim);color:var(--accent);cursor:pointer" onclick="insertVariable('${v}')">${v}</span>`).join('')}
+        </div>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="saveTemplate('${t.id}')" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save Template</button>
+        <button onclick="previewTemplate('${t.id}')" class="btn btn-secondary btn-sm"><i class="fas fa-eye"></i> Preview</button>
+      </div>
+    </div>
+  `;
+}
+
+function insertVariable(v) {
+  const body = document.getElementById('tplBody');
+  const pos = body.selectionStart;
+  body.value = body.value.slice(0,pos) + v + body.value.slice(pos);
+  body.focus();
+}
+
+function saveTemplate(id) {
+  const t = DB.emailTemplates.find(tpl=>tpl.id===id);
+  if (!t) return;
+  t.name = document.getElementById('tplName').value;
+  t.subject = document.getElementById('tplSubject').value;
+  t.body = document.getElementById('tplBody').value;
+  renderTemplates();
+  showToast('Template saved successfully!');
+}
+
+function previewTemplate(id) {
+  const t = DB.emailTemplates.find(tpl=>tpl.id===id);
+  if (!t) return;
+  const sample = t.body
+    .replace(/\{\{employee_name\}\}/g, 'Amit Patel')
+    .replace(/\{\{employee_id\}\}/g, 'EMP001')
+    .replace(/\{\{date\}\}/g, '2025-01-20')
+    .replace(/\{\{shift_type\}\}/g, 'Morning')
+    .replace(/\{\{start_time\}\}/g, '06:00')
+    .replace(/\{\{end_time\}\}/g, '14:00')
+    .replace(/\{\{amount\}\}/g, '15,000')
+    .replace(/\{\{repayment_months\}\}/g, '3')
+    .replace(/\{\{monthly_deduction\}\}/g, '5,000')
+    .replace(/\{\{department\}\}/g, 'Engineering')
+    .replace(/\{\{position\}\}/g, 'Senior Developer')
+    .replace(/\{\{drive_link\}\}/g, 'https://drive.google.com/file/d/sample')
+    .replace(/\{\{rejection_reason\}\}/g, 'Insufficient tenure')
+    .replace(/\{\{basic_salary\}\}/g, '85,000')
+    .replace(/\{\{deductions\}\}/g, '12,000')
+    .replace(/\{\{net_pay\}\}/g, '73,000')
+    .replace(/\{\{month\}\}/g, 'January 2025')
+    .replace(/\{\{present_count\}\}/g, '6')
+    .replace(/\{\{absent_count\}\}/g, '2')
+    .replace(/\{\{leave_count\}\}/g, '0');
+  showModal(`
+    <h3 class="text-lg font-bold mb-1">Email Preview</h3>
+    <p class="text-sm mb-4" style="color:var(--text-muted)">${t.subject.replace(/\{\{employee_name\}\}/g,'Amit Patel')}</p>
+    <div class="p-4 rounded-lg" style="background:var(--bg-primary);border:1px solid var(--border)">
+      <pre class="text-sm whitespace-pre-wrap" style="color:var(--text-secondary);font-family:'DM Sans'">${sample}</pre>
+    </div>
+    <button onclick="closeModal()" class="btn btn-secondary btn-sm mt-4 w-full justify-center">Close</button>
+  `);
+}
+
+// ==================== SMTP SETTINGS ====================
+function saveSMTP() {
+  DB.smtpConfig = {
+    host: document.getElementById('smtpHost').value,
+    port: parseInt(document.getElementById('smtpPort').value),
+    user: document.getElementById('smtpUser').value,
+    pass: document.getElementById('smtpPass').value,
+    fromName: document.getElementById('smtpFrom').value,
+    encryption: document.getElementById('smtpEncryption').value,
+  };
+  showToast('SMTP settings saved successfully!');
+}
+
+function testSMTP() {
+  showToast('Sending test email...','info');
+  setTimeout(() => {
+    sendSimulatedEmail(DB.smtpConfig.user, 'NexaHR SMTP Test Email', 'shift_assigned', null, null);
+    showToast('Test email sent! Check email logs for status.');
+  }, 500);
+}
+
+// ==================== NOTIFICATIONS ====================
+function showNotifications() {
+  const failed = DB.emailLogs.filter(e=>e.status==='failed');
+  const pending = DB.advances.filter(a=>a.status==='pending');
+  const notifs = [
+    ...failed.map(e => ({ icon:'fa-envelope-circle-xmark', color:'var(--danger)', text:`Email to ${e.recipient} failed`, time: new Date(e.createdAt).toLocaleString() })),
+    ...pending.map(a => { const emp = DB.employees.find(e=>e.id===a.empId); return { icon:'fa-hourglass-half', color:'var(--warning)', text:`Advance pending: ${emp?.name||a.empId} — ₹${a.amount.toLocaleString()}`, time: a.date }; }),
+  ];
+  if (!notifs.length) { showToast('No new notifications','info'); return; }
+  showModal(`
+    <h3 class="text-lg font-bold mb-4">Notifications</h3>
+    <div class="space-y-2">
+      ${notifs.map(n=>`<div class="flex items-start gap-3 p-3 rounded-lg" style="background:var(--bg-primary)"><i class="fas ${n.icon} mt-0.5" style="color:${n.color}"></i><div class="flex-1"><p class="text-sm" style="color:var(--text-secondary)">${n.text}</p><p class="text-xs mt-1" style="color:var(--text-muted)">${n.time}</p></div></div>`).join('')}
+    </div>
+    <button onclick="closeModal()" class="btn btn-secondary btn-sm mt-4 w-full justify-center">Close</button>
+  `);
+  document.getElementById('notifDot').style.display = 'none';
+}
+
+// ==================== INIT ====================
+seedData();
+
+// Check notification dot
+if (DB.emailLogs.some(e=>e.status==='failed') || DB.advances.some(a=>a.status==='pending')) {
+  document.getElementById('notifDot').style.display = 'block';
+} else {
+  document.getElementById('notifDot').style.display = 'none';
+}
+</script>
+</body>
+</html>
